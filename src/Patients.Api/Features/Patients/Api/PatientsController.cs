@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Patients.Api.Features.Patients.Application;
 using Patients.Api.Features.Patients.Contracts;
@@ -6,6 +7,7 @@ namespace Patients.Api.Features.Patients.Api;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Reader,Editor")]
 public class PatientsController(IPatientService patientService) : ControllerBase
 {
     [HttpGet]
@@ -26,6 +28,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Editor")]
     [ProducesResponseType(typeof(PatientResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreatePatientRequest request, CancellationToken cancellationToken)
@@ -40,6 +43,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Editor")]
     [ProducesResponseType(typeof(PatientResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -60,6 +64,7 @@ public class PatientsController(IPatientService patientService) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Editor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)

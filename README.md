@@ -32,6 +32,35 @@ Esto mantiene el codigo agrupado por feature sin fragmentar la solucion en mucho
 - **EF Core + migraciones** para crear y versionar el esquema de `Patients` (cumple el requisito de EF y facilita reproducibilidad).
 - **Stored procedures** para consultas especificas (`listado paginado` y `creados despues de fecha`) porque el enunciado lo pide y permite delegar paginacion/filtrado a SQL Server.
 - **Monolito modular por carpetas** en vez de multiples proyectos: reduce friccion en una prueba corta sin sacrificar separacion clara de responsabilidades.
+- **JWT + roles (adicional)** para que el frontend consuma con token y permisos diferenciados de lectura/escritura.
+
+## Mejora adicional: Autenticacion JWT y roles
+Se implementa una capa basica de seguridad con **usuario + contrasena** (sin correo) usando ASP.NET Core Identity y JWT.
+
+- Endpoints publicos:
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+- Roles:
+  - `Reader`: solo lectura
+  - `Editor`: lectura y escritura
+
+### Matriz de permisos
+- `GET /api/patients` -> `Reader,Editor`
+- `GET /api/patients/{id}` -> `Reader,Editor`
+- `GET /api/patients/created-after` -> `Reader,Editor`
+- `POST /api/patients` -> `Editor`
+- `PUT /api/patients/{id}` -> `Editor`
+- `DELETE /api/patients/{id}` -> `Editor`
+
+### Usuarios demo seed
+En `Development`, al iniciar la API se crean automaticamente:
+- Usuario `reader` con contrasena `Reader123!` y rol `Reader`
+- Usuario `editor` con contrasena `Editor123!` y rol `Editor`
+
+### Uso desde Swagger
+1. Llamar `POST /api/auth/login` con `userName` y `password`.
+2. Copiar el token.
+3. Abrir **Authorize** en Swagger y pegar: `Bearer <token>`.
 
 ## Endpoints requeridos
 - `POST /api/patients`: crea paciente validando duplicado por `(DocumentType, DocumentNumber)`.
@@ -151,6 +180,12 @@ Por defecto ambos apuntan a LocalDB y a la base `PatientsDb`:
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PatientsDb;Trusted_Connection=True;TrustServerCertificate=True;"
+},
+"Jwt": {
+  "Issuer": "Patients.Api",
+  "Audience": "Patients.Frontend",
+  "Key": "PatientsApiSuperSecretKeyForJwt123456",
+  "ExpiresMinutes": 60
 }
 ```
 
@@ -219,3 +254,5 @@ Esto es util para desarrollo local, pero **no sustituye** documentar el comando 
 Incluye pruebas unitarias con **xUnit** y **Moq**:
 - `PatientsControllerTests`: todos los endpoints del controlador con `IPatientService` mockeado (respuestas HTTP esperadas).
 - `PatientServiceTests`: reglas de negocio y persistencia con **EF Core InMemory** (CRUD y consulta por id). Los metodos que dependen de **stored procedures** (`GetPagedAsync`, `GetCreatedAfterAsync`) se cubren a nivel de controlador; probar el SP real requiere SQL Server (prueba de integracion opcional).
+- `AuthControllerTests`: validacion de respuestas HTTP para registro/login (creado, conflicto, unauthorized y token valido).
+- `AuthServiceTests`: flujo de registro/login con Identity en memoria, emision de token y asignacion de rol.
